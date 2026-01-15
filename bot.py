@@ -18,10 +18,10 @@ items = amazon.search_items(
     item_count=1
 )
 
-for item in items:
 print("ACCESS_KEY existe?", bool(ACCESS_KEY))
 print("SECRET_KEY existe?", bool(SECRET_KEY))
 print("PARTNER_TAG =", PARTNER_TAG)
+
 
 
 
