@@ -1,22 +1,7 @@
-name: Bot Telegram
-
-on:
-  schedule:
-    - cron: "0 12 * * *"
-  workflow_dispatch:
-
-jobs:
-  bot:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - run: python bot.py
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          AFILIADO_TAG: ${{ secrets.AFILIADO_TAG }}
+- name: Executar bot
+  run: |
+    python bot.py
+  env:
+    AMAZON_ACCESS_KEY: ${{ secrets.AMAZON_ACCESS_KEY }}
+    AMAZON_SECRET_KEY: ${{ secrets.AMAZON_SECRET_KEY }}
+    AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
