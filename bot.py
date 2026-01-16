@@ -71,24 +71,43 @@ def gerar_link_afiliado(link_produto):
 # =========================
 
 def buscar_produtos(palavra_chave, limite=1):
-    query = palavra_chave.replace(" ", "%20")
-    url = f"https://shopee.com.br/search?keyword={query}"
+    url = "https://shopee.com.br/api/v4/search/search_items"
 
-    r = requests.get(url, headers=HEADERS, timeout=20)
-    soup = BeautifulSoup(r.text, "html.parser")
+    params = {
+        "by": "relevancy",
+        "keyword": palavra_chave,
+        "limit": limite,
+        "newest": 0,
+        "order": "desc",
+        "page_type": "search"
+    }
+
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://shopee.com.br/"
+    }
+
+    r = requests.get(url, params=params, headers=headers, timeout=20)
+    data = r.json()
 
     produtos = []
 
-    for a in soup.select("a[href*='-i.']"):
-        link = "https://shopee.com.br" + a.get("href")
-        titulo = a.get_text(strip=True)
+    for item in data.get("items", []):
+        info = item.get("item_basic", {})
 
-        if len(titulo) < 10:
+        titulo = info.get("name")
+        shopid = info.get("shopid")
+        itemid = info.get("itemid")
+
+        if not titulo or not shopid or not itemid:
             continue
+
+        link_produto = f"https://shopee.com.br/product/{shopid}/{itemid}"
+        link_afiliado = f"{SHOPEE_AFILIADO_BASE}?u={link_produto}"
 
         produtos.append({
             "titulo": titulo,
-            "link": gerar_link_afiliado(link)
+            "link": link_afiliado
         })
 
         if len(produtos) >= limite:
