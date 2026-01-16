@@ -1,65 +1,111 @@
-import os
-import random
-import time
 import requests
-from amazon_paapi import AmazonApi
+import os
+import time
+import random
+from bs4 import BeautifulSoup
 
 # =========================
-# AMAZON PA-API
+# SECRETS
 # =========================
 
-AMAZON_ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY")
-AMAZON_SECRET_KEY = os.getenv("AMAZON_SECRET_KEY")
-AMAZON_PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG")
-AMAZON_COUNTRY = "BR"
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+SHOPEE_AFILIADO_BASE = os.getenv("SHOPEE_AFILIADO_BASE")
 
-amazon = AmazonApi(
-    AMAZON_ACCESS_KEY,
-    AMAZON_SECRET_KEY,
-    AMAZON_PARTNER_TAG,
-    AMAZON_COUNTRY
-)
+if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not SHOPEE_AFILIADO_BASE:
+    raise ValueError("Secrets obrigatórios não definidos")
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}
+
+# =========================
+# CATEGORIAS + PALAVRAS-CHAVE
+# =========================
+
+CATEGORIAS = {
+    "📱 Celulares": [
+        "iphone",
+        "samsung galaxy",
+        "xiaomi celular",
+        "motorola celular"
+    ],
+    "📺 Televisões": [
+        "smart tv",
+        "tv 4k",
+        "android tv"
+    ],
+    "🎧 Fones de Ouvido": [
+        "fone bluetooth",
+        "headphone",
+        "fone gamer"
+    ],
+    "⌚ Smartwatch": [
+        "smartwatch",
+        "relógio inteligente"
+    ],
+    "🛡️ Capinhas e Películas": [
+        "capinha celular",
+        "película vidro"
+    ],
+    "🔊 Assistentes Virtuais": [
+        "echo dot",
+        "alexa"
+    ],
+    "💻 Eletrônicos em Geral": [
+        "tablet",
+        "monitor",
+        "notebook"
+    ]
+}
+
+# =========================
+# GERAR LINK AFILIADO
+# =========================
+
+def gerar_link_afiliado(link_produto):
+    return f"{SHOPEE_AFILIADO_BASE}?u={link_produto}"
+
+# =========================
+# BUSCAR PRODUTOS SHOPEE
+# =========================
+
+def buscar_produtos(palavra_chave, limite=1):
+    query = palavra_chave.replace(" ", "%20")
+    url = f"https://shopee.com.br/search?keyword={query}"
+
+    r = requests.get(url, headers=HEADERS, timeout=20)
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    produtos = []
+
+    for a in soup.select("a[href*='-i.']"):
+        link = "https://shopee.com.br" + a.get("href")
+        titulo = a.get_text(strip=True)
+
+        if len(titulo) < 10:
+            continue
+
+        produtos.append({
+            "titulo": titulo,
+            "link": gerar_link_afiliado(link)
+        })
+
+        if len(produtos) >= limite:
+            break
+
+    return produtos
 
 # =========================
 # TELEGRAM
 # =========================
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
-def enviar_telegram(mensagem):
+def enviar_telegram(msg):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
+    requests.post(url, json={
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensagem,
-        "disable_web_page_preview": False
-    }
-    r = requests.post(url, json=payload, timeout=20)
-    print("📡 Telegram:", r.status_code)
-
-# =========================
-# PALAVRAS-CHAVE (ELETRÔNICOS TOP)
-# =========================
-
-KEYWORDS = [
-    "smartphone",
-    "iphone",
-    "celular android",
-    "tablet",
-    "smart tv",
-    "televisão 4k",
-    "echo dot",
-    "alexa",
-    "fone bluetooth",
-    "headphone",
-    "smartwatch",
-    "monitor gamer",
-    "notebook",
-    "mouse gamer",
-    "teclado mecanico",
-    "capinha celular",
-    "pelicula vidro"
-]
+        "text": msg
+    })
 
 # =========================
 # COPY AGRESSIVA
@@ -73,9 +119,9 @@ def gerar_mensagem(categoria, titulo, link):
 📦 {titulo}
 
 ⚡ Alta procura
-💎 Produto premium
-🚚 Entrega rápida Amazon
-🔒 Compra 100% segura
+💎 Excelente custo-benefício
+🚚 Envio rápido Shopee
+🔒 Compra segura
 
 🛒 Garanta o seu agora:
 {link}
@@ -85,51 +131,26 @@ Os eletrônicos mais desejados do momento.
 """
 
 # =========================
-# BUSCAR PRODUTOS
-# =========================
-
-def buscar_produtos():
-    palavra = random.choice(KEYWORDS)
-
-    resultado = amazon.search_items(
-        keywords=palavra,
-        search_index="Electronics",
-        item_count=random.randint(3, 6),
-        resources=[
-            "ItemInfo.Title",
-            "DetailPageURL"
-        ]
-    )
-
-    if not resultado or not resultado.items:
-        return []
-
-    produtos = []
-    for item in resultado.items:
-        try:
-            produtos.append({
-                "titulo": item.item_info.title.display_value,
-                "link": item.detail_page_url
-            })
-        except:
-            pass
-
-    return produtos
-
-# =========================
 # EXECUÇÃO PRINCIPAL
 # =========================
 
-print("🚀 Bot Loja Ponto H iniciado")
+print("🚀 Bot Shopee Loja Ponto H iniciado")
 
-produtos = buscar_produtos()
-print("📦 Produtos encontrados:", len(produtos))
+QTDE_POR_EXECUCAO = random.randint(3, 6)
 
-for p in produtos:
-    mensagem = gerar_mensagem("Eletrônicos Premium", p["titulo"], p["link"])
-    enviar_telegram(mensagem)
+for i in range(QTDE_POR_EXECUCAO):
+    categoria = random.choice(list(CATEGORIAS.keys()))
+    palavra = random.choice(CATEGORIAS[categoria])
 
-    # ⏳ Intervalo humano (2 a 6 minutos)
-    time.sleep(random.randint(120, 360))
+    print(f"🔎 Buscando: {categoria} | {palavra}")
+
+    produtos = buscar_produtos(palavra, limite=1)
+
+    for p in produtos:
+        mensagem = gerar_mensagem(categoria, p["titulo"], p["link"])
+        enviar_telegram(mensagem)
+
+    if i < QTDE_POR_EXECUCAO - 1:
+        time.sleep(random.randint(120, 360))  # 2 a 6 minutos
 
 print("🏁 Execução finalizada")
