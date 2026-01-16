@@ -81,6 +81,10 @@ Curadoria diária de tecnologia, games e eletrônicos.
 
 POSTED_FILE = "posted_links.txt"
 
+def salvar_link(link):
+    with open(POSTED_FILE, "a", encoding="utf-8") as f:
+        f.write(link + "\n")
+
 def carregar_links_postados():
     # Se o arquivo não existir, cria vazio
     if not os.path.exists(POSTED_FILE):
