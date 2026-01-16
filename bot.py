@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import os
 import time
 import random
+from datetime import datetime
 
 # =========================
 # SECRETS
@@ -12,45 +13,108 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 AFILIADO_TAG = os.getenv("AFILIADO_TAG")
 
+if not AFILIADO_TAG:
+    raise ValueError("AFILIADO_TAG não definido nos Secrets do GitHub")
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"
 }
 
 # =========================
-# CATEGORIAS
+# CATEGORIAS (ROTAÇÃO POR HORA)
 # =========================
 
-CATEGORIAS = {
-    "🔌 Eletrônicos": "https://www.amazon.com.br/gp/bestsellers/electronics",
-    "🎮 Games & Videogame": "https://www.amazon.com.br/gp/bestsellers/videogames",
-    "🎵 Música": "https://www.amazon.com.br/gp/bestsellers/music",
-    "💻 Computadores": "https://www.amazon.com.br/gp/bestsellers/computers"
-}
+CATEGORIAS = [
+    ("🔌 Eletrônicos", "https://www.amazon.com.br/gp/bestsellers/electronics"),
+    ("🎮 Games & Videogame", "https://www.amazon.com.br/gp/bestsellers/videogames"),
+    ("💻 Computadores", "https://www.amazon.com.br/gp/bestsellers/computers"),
+    ("🎵 Música", "https://www.amazon.com.br/gp/bestsellers/music")
+]
+
+# =========================
+# MENSAGENS (COPY ROTATIVA)
+# =========================
+
+def gerar_mensagem(categoria, titulo, link):
+    modelos = [
+        f"""🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
+
+📦 {titulo}
+
+✔️ Um dos produtos mais procurados da categoria
+✔️ Excelente opção para uso diário ou presente
+✔️ Compra segura e entrega rápida pela Amazon
+
+🛒 Garanta o seu agora:
+{link}
+
+🏬 Loja Ponto H
+Curadoria diária de tecnologia, games e eletrônicos.
+""",
+        f"""⚡ DESTAQUE DO DIA – LOJA PONTO H ⚡
+
+📦 {titulo}
+
+💡 Por que escolher este produto?
+✔️ Alta avaliação
+✔️ Ótimo custo-benefício
+✔️ Vendido pela Amazon
+
+👉 Confira a oferta:
+{link}
+
+🏬 Loja Ponto H – As melhores oportunidades do dia.
+"""
+    ]
+    return random.choice(modelos)
+
+# =========================
+# CONTROLE DE REPETIÇÃO
+# =========================
+
+POSTED_FILE = "posted_links.txt"
+
+def carregar_links_postados():
+    if not os.path.exists(POSTED_FILE):
+        return set()
+    with open(POSTED_FILE, "r") as f:
+        return set(l.strip() for l in f.readlines())
+
+def salvar_link(link):
+    with open(POSTED_FILE, "a") as f:
+        f.write(link + "\n")
 
 # =========================
 # BUSCAR PRODUTOS
 # =========================
 
-def buscar_produtos(url):
+def buscar_produtos(url, usados):
     r = requests.get(url, headers=HEADERS, timeout=20)
     soup = BeautifulSoup(r.text, "html.parser")
 
     produtos = []
-
     itens = soup.select("div.zg-grid-general-faceout")
     random.shuffle(itens)
 
-    for item in itens[:3]:
+    for item in itens:
         titulo = item.select_one("div._cDEzb_p13n-sc-css-line-clamp-3_g3dy1")
         link = item.select_one("a.a-link-normal")
 
         if not titulo or not link:
             continue
 
+        link_limpo = "https://www.amazon.com.br" + link["href"].split("?")[0]
+
+        if link_limpo in usados:
+            continue
+
         produtos.append({
             "titulo": titulo.get_text(strip=True),
-            "link": "https://www.amazon.com.br" + link["href"].split("?")[0]
+            "link": link_limpo
         })
+
+        if len(produtos) == 3:
+            break
 
     return produtos
 
@@ -58,42 +122,4 @@ def buscar_produtos(url):
 # ENVIAR TELEGRAM
 # =========================
 
-def enviar_telegram(texto):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": texto
-    }
-    requests.post(url, json=payload)
-
-# =========================
-# EXECUÇÃO
-# =========================
-
-print("🚀 Bot Loja Ponto H iniciado...")
-
-categoria, url = random.choice(list(CATEGORIAS.items()))
-produtos = buscar_produtos(url)
-
-for p in produtos[:3]:
-    link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
-
-    mensagem = f"""🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
-
-📦 {p['titulo']}
-
-💡 Destaques do produto:
-✔️ Produto em alta na Amazon
-✔️ Ótima opção para uso diário
-✔️ Compra segura e entrega rápida
-
-🛒 Garanta o seu agora:
-{link_afiliado}
-
-🏬 Loja Ponto H
-Seleção diária de tecnologia, games e eletrônicos.
-"""
-    enviar_telegram(mensagem)
-    time.sleep(3)
-
-print("🏁 Execução finalizada.")
+def enviar_telegram_
