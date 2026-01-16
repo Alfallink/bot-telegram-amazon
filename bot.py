@@ -1,22 +1,32 @@
-import requests
 import os
 import time
 import random
-from bs4 import BeautifulSoup
+import requests
 
 # =========================
-# SECRETS
+# SECRETS (GITHUB ACTIONS)
 # =========================
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 SHOPEE_AFILIADO_BASE = os.getenv("SHOPEE_AFILIADO_BASE")
 
-if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not SHOPEE_AFILIADO_BASE:
-    raise ValueError("Secrets obrigatórios não definidos")
+if not TELEGRAM_BOT_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN ausente")
+
+if not TELEGRAM_CHAT_ID:
+    raise ValueError("TELEGRAM_CHAT_ID ausente")
+
+if not SHOPEE_AFILIADO_BASE:
+    raise ValueError("SHOPEE_AFILIADO_BASE ausente")
+
+# =========================
+# CONFIGURAÇÕES
+# =========================
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    "User-Agent": "Mozilla/5.0",
+    "Referer": "https://shopee.com.br/"
 }
 
 # =========================
@@ -42,11 +52,11 @@ CATEGORIAS = {
     ],
     "⌚ Smartwatch": [
         "smartwatch",
-        "relógio inteligente"
+        "relogio inteligente"
     ],
     "🛡️ Capinhas e Películas": [
         "capinha celular",
-        "película vidro"
+        "pelicula vidro"
     ],
     "🔊 Assistentes Virtuais": [
         "echo dot",
@@ -60,6 +70,20 @@ CATEGORIAS = {
 }
 
 # =========================
+# TELEGRAM
+# =========================
+
+def enviar_telegram(texto):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": texto
+    }
+
+    r = requests.post(url, json=payload, timeout=10)
+    print("📡 Telegram status:", r.status_code)
+
+# =========================
 # GERAR LINK AFILIADO
 # =========================
 
@@ -67,10 +91,12 @@ def gerar_link_afiliado(link_produto):
     return f"{SHOPEE_AFILIADO_BASE}?u={link_produto}"
 
 # =========================
-# BUSCAR PRODUTOS SHOPEE
+# BUSCAR PRODUTOS SHOPEE (JSON)
 # =========================
 
 def buscar_produtos(palavra_chave, limite=1):
+    print(f"🌐 Buscando na Shopee: {palavra_chave}")
+
     url = "https://shopee.com.br/api/v4/search/search_items"
 
     params = {
@@ -82,10 +108,105 @@ def buscar_produtos(palavra_chave, limite=1):
         "page_type": "search"
     }
 
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Referer": "https://shopee.com.br/"
-    }
+    try:
+        r = requests.get(
+            url,
+            headers=HEADERS,
+            params=params,
+            timeout=8  # evita travamento
+        )
+
+        if r.status_code != 200:
+            print("⚠️ Shopee status:", r.status_code)
+            return []
+
+        data = r.json()
+
+    except requests.exceptions.Timeout:
+        print("⏱️ Timeout Shopee")
+        return []
+
+    except Exception as e:
+        print("❌ Erro Shopee:", e)
+        return []
+
+    produtos = []
+
+    for item in data.get("items", []):
+        info = item.get("item_basic", {})
+
+        titulo = info.get("name")
+        shopid = info.get("shopid")
+        itemid = info.get("itemid")
+
+        if not titulo or not shopid or not itemid:
+            continue
+
+        link_produto = f"https://shopee.com.br/product/{shopid}/{itemid}"
+        link_afiliado = gerar_link_afiliado(link_produto)
+
+        produtos.append({
+            "titulo": titulo,
+            "link": link_afiliado
+        })
+
+        if len(produtos) >= limite:
+            break
+
+    return produtos
+
+# =========================
+# COPY PROFISSIONAL
+# =========================
+
+def gerar_mensagem(categoria, titulo, link):
+    return f"""🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
+
+📂 Categoria: {categoria}
+
+📦 {titulo}
+
+✔️ Alta procura
+✔️ Excelente custo-benefício
+✔️ Compra segura pela Shopee
+
+🛒 Garanta o seu agora:
+{link}
+
+🏬 Loja Ponto H
+Tecnologia e eletrônicos selecionados.
+"""
+
+# =========================
+# EXECUÇÃO PRINCIPAL
+# =========================
+
+print("🚀 Bot Shopee Loja Ponto H iniciado")
+
+QTDE_POR_EXECUCAO = random.randint(3, 5)
+print("📦 Quantidade desta execução:", QTDE_POR_EXECUCAO)
+
+for i in range(QTDE_POR_EXECUCAO):
+    categoria = random.choice(list(CATEGORIAS.keys()))
+    palavra = random.choice(CATEGORIAS[categoria])
+
+    print(f"🔎 ({i+1}/{QTDE_POR_EXECUCAO}) Categoria: {categoria} | Palavra: {palavra}")
+
+    produtos = buscar_produtos(palavra, limite=1)
+
+    if not produtos:
+        print("⚠️ Nenhum produto retornado, pulando")
+        continue
+
+    for p in produtos:
+        mensagem = gerar_mensagem(categoria, p["titulo"], p["link"])
+        enviar_telegram(mensagem)
+
+    # ⏳ intervalo curto (estável para GitHub)
+    if i < QTDE_POR_EXECUCAO - 1:
+        time.sleep(15)
+
+print("🏁 Execução finalizada com sucesso")    }
 
     r = requests.get(url, params=params, headers=headers, timeout=20)
     data = r.json()
