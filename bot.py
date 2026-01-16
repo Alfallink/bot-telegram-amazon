@@ -145,20 +145,29 @@ def enviar_telegram(texto):
 # EXECUÇÃO PRINCIPAL
 # =========================
 
-print("🚀 Bot Loja Ponto H iniciado...")
-
-hora = datetime.utcnow().hour
-categoria_nome, categoria_url = CATEGORIAS[hora % len(CATEGORIAS)]
+print("📂 Categoria escolhida:", categoria_nome)
+print("🔎 Buscando produtos em:", categoria_url)
 
 links_usados = carregar_links_postados()
+print("📁 Links já usados:", len(links_usados))
+
 produtos = buscar_produtos(categoria_url, links_usados)
 
-for p in produtos:
-    link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
-    mensagem = gerar_mensagem(categoria_nome, p["titulo"], link_afiliado)
+print("📦 Produtos encontrados:", len(produtos))
 
-    enviar_telegram(mensagem)
-    salvar_link(p["link"])
-    time.sleep(random.randint(3, 6))
+if not produtos:
+    print("⚠️ Nenhum produto encontrado nesta execução.")
+else:
+    for p in produtos:
+        print("📦 Produto:", p["titulo"])
+
+        link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
+        mensagem = gerar_mensagem(categoria_nome, p["titulo"], link_afiliado)
+
+        print("➡️ Enviando para o Telegram...")
+        enviar_telegram(mensagem)
+
+        salvar_link(p["link"])
+        time.sleep(3)
 
 print("🏁 Execução finalizada com sucesso.")
