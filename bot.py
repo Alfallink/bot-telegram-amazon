@@ -128,8 +128,6 @@ def buscar_produtos(url, usados):
 
     return produtos
 
-
-
 # =========================
 # ENVIAR TELEGRAM
 # =========================
@@ -142,13 +140,11 @@ def enviar_telegram(texto):
         "disable_web_page_preview": True
     }
     r = requests.post(url, json=payload, timeout=20)
-    print("📡 Telegram:", r.status_code, r.text)
+    print("📡 Telegram:", r.status_code)
 
 # =========================
 # EXECUÇÃO PRINCIPAL
 # =========================
-print("🧪 TESTE FORÇADO DE ENVIO")
-enviar_telegram("🧪 TESTE OK — se você leu isso, o bot envia mensagens.")
 
 hora = datetime.utcnow().hour
 categoria_nome, categoria_url = CATEGORIAS[hora % len(CATEGORIAS)]
@@ -173,6 +169,8 @@ else:
 
         enviar_telegram(mensagem)
         salvar_link(p["link"])
-        time.sleep(3)
+
+        # ⏳ Intervalo de 3 a 6 minutos entre anúncios
+        time.sleep(random.randint(180, 360))
 
 print("🏁 Execução finalizada com sucesso.")
