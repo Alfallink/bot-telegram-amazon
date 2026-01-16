@@ -146,6 +146,8 @@ def enviar_telegram(texto):
 # =========================
 # EXECUÇÃO PRINCIPAL
 # =========================
+print("🧪 TESTE FORÇADO DE ENVIO")
+enviar_telegram("🧪 TESTE OK — se você leu isso, o bot envia mensagens.")
 
 hora = datetime.utcnow().hour
 categoria_nome, categoria_url = CATEGORIAS[hora % len(CATEGORIAS)]
