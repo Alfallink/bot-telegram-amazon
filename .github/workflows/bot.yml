@@ -16,16 +16,9 @@ jobs:
       SHOPEE_AFILIADO_BASE: ${{ secrets.SHOPEE_AFILIADO_BASE }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install requests beautifulsoup4
-
-      - name: Run bot
-        run: python bot.py
+      - run: pip install requests
+      - run: python bot.py
