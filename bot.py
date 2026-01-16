@@ -123,7 +123,7 @@ def buscar_produtos(url, usados):
             "link": link_limpo
         })
 
-        if len(produtos) == 3:
+        if len(produtos) == 5:
             break
 
     return produtos
