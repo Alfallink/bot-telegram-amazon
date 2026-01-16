@@ -1,38 +1,49 @@
-name: Bot Shopee - Loja Ponto H
+name: Bot Shopee Automático
 
-# Configuração de Gatilhos
 on:
-  # Executa diariamente às 09:00 UTC
+  # Agenda: diariamente às 10:00 UTC (07:00 horário de Brasília)
   schedule:
-    - cron: '0 9 * * *'
-  # Permite executar manualmente pela aba "Actions"
+    - cron: '0 10 * * *'
+  
+  # Permite execução manual
   workflow_dispatch:
+  
+  # Executa no push (opcional)
+  push:
+    branches: [ main ]
 
 jobs:
-  run-bot:
-    runs-on: ubuntu-latest  # Define o sistema operacional da máquina virtual
-
+  executar-bot:
+    runs-on: ubuntu-latest
+    
     steps:
-      # Passo 1: Obter o código do repositório
-      - name: Checkout código
+      # 1. Baixa o código
+      - name: Baixar repositório
         uses: actions/checkout@v4
-
-      # Passo 2: Configurar Python
+      
+      # 2. Configura Python
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Especifique uma versão compatível com seu código
-
-      # Passo 3: Instalar Dependências
-      - name: Instalar dependências
+          python-version: '3.10'
+      
+      # 3. Instala dependências
+      - name: Instalar bibliotecas
         run: |
-          python -m pip install --upgrade pip
-          pip install requests  # Adicione outras bibliotecas se necessário
-
-      # Passo 4: Executar o Bot
-      - name: Executar script do bot
-        env:  # Passa os segredos como variáveis de ambiente
+          pip install --upgrade pip
+          pip install requests
+      
+      # 4. Executa o bot
+      - name: Executar Bot
+        env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SHOPEE_AFILIADO_BASE: ${{ secrets.SHOPEE_AFILIADO_BASE }}
-        run: python bot_shopee.py
+        run: |
+          echo "Iniciando execução do bot..."
+          python bot.py
+          echo "Execução concluída!"
+      
+      # 5. (Opcional) Log de conclusão
+      - name: Finalização
+        run: echo "✅ Workflow concluído em $(date)"
