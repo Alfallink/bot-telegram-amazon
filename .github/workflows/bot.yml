@@ -2,8 +2,8 @@ name: Bot Shopee Automático
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # Diariamente às 09:00 UTC
-  workflow_dispatch:      # Execução manual
+    - cron: '0 9 * * *'
+  workflow_dispatch:
 
 jobs:
   executar-bot:
