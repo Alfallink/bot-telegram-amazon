@@ -75,7 +75,7 @@ print("🚀 Bot Loja Ponto H iniciado...")
 categoria, url = random.choice(list(CATEGORIAS.items()))
 produtos = buscar_produtos(url)
 
-for p in produtos[:3]
+for p in produtos[:3]:
     link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
 
     mensagem = f"""🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
