@@ -86,14 +86,12 @@ def salvar_link(link):
         f.write(link + "\n")
 
 def carregar_links_postados():
-    # Se o arquivo não existir, cria vazio
     if not os.path.exists(POSTED_FILE):
         open(POSTED_FILE, "w").close()
         return set()
 
-    with open(POSTED_FILE, "r") as f:
+    with open(POSTED_FILE, "r", encoding="utf-8") as f:
         return set(l.strip() for l in f.readlines() if l.strip())
-
 
 # =========================
 # BUSCAR PRODUTOS
@@ -139,11 +137,15 @@ def enviar_telegram(texto):
         "chat_id": TELEGRAM_CHAT_ID,
         "text": texto
     }
-    requests.post(url, json=payload)
+    r = requests.post(url, json=payload)
+    print("📡 Telegram status:", r.status_code)
 
 # =========================
 # EXECUÇÃO PRINCIPAL
 # =========================
+
+hora = datetime.utcnow().hour
+categoria_nome, categoria_url = CATEGORIAS[hora % len(CATEGORIAS)]
 
 print("📂 Categoria escolhida:", categoria_nome)
 print("🔎 Buscando produtos em:", categoria_url)
@@ -152,21 +154,18 @@ links_usados = carregar_links_postados()
 print("📁 Links já usados:", len(links_usados))
 
 produtos = buscar_produtos(categoria_url, links_usados)
-
 print("📦 Produtos encontrados:", len(produtos))
 
 if not produtos:
     print("⚠️ Nenhum produto encontrado nesta execução.")
 else:
     for p in produtos:
-        print("📦 Produto:", p["titulo"])
+        print("📦 Enviando produto:", p["titulo"])
 
         link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
         mensagem = gerar_mensagem(categoria_nome, p["titulo"], link_afiliado)
 
-        print("➡️ Enviando para o Telegram...")
         enviar_telegram(mensagem)
-
         salvar_link(p["link"])
         time.sleep(3)
 
