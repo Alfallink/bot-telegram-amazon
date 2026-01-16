@@ -65,11 +65,11 @@ def enviar_telegram(texto):
         return False
 
 # =========================
-# BUSCAR PRODUTOS SHOPEE (SIMPLIFICADO)
+# BUSCAR PRODUTOS SHOPEE
 # =========================
 
 def buscar_produtos(palavra_chave, limite=1):
-    """Busca produtos na Shopee - Versão simplificada"""
+    """Busca produtos na Shopee"""
     print(f"🔍 Buscando: '{palavra_chave}'")
     
     url = "https://shopee.com.br/api/v4/search/search_items"
@@ -91,7 +91,6 @@ def buscar_produtos(palavra_chave, limite=1):
             return []
         
         data = response.json()
-        
         produtos = []
         
         for item in data.get("items", []):
@@ -104,11 +103,9 @@ def buscar_produtos(palavra_chave, limite=1):
             if not nome or not shop_id or not item_id:
                 continue
             
-            # Criar link do produto
             link_produto = f"https://shopee.com.br/product/{shop_id}/{item_id}"
             link_afiliado = f"{SHOPEE_AFILIADO_BASE}?u={link_produto}"
             
-            # Extrair preço
             preco_min = info.get("price_min")
             preco = preco_min / 100000 if preco_min else 0
             
@@ -185,14 +182,12 @@ def main():
     for i in range(quantidade):
         print(f"\n📦 Produto {i+1}/{quantidade}")
         
-        # Selecionar aleatoriamente
         categoria = random.choice(list(CATEGORIAS.keys()))
         palavra = random.choice(CATEGORIAS[categoria])
         
         print(f"Categoria: {categoria}")
         print(f"Palavra: {palavra}")
         
-        # Buscar produto
         produtos = buscar_produtos(palavra, limite=1)
         
         if not produtos:
@@ -203,7 +198,6 @@ def main():
             produto = produtos[0]
             print(f"✅ Encontrado: {produto['titulo'][:50]}...")
             
-            # Gerar e enviar mensagem
             mensagem = gerar_mensagem(categoria, produto)
             
             if enviar_telegram(mensagem):
@@ -214,7 +208,7 @@ def main():
         else:
             print("❌ Nenhum produto disponível")
         
-        # Aguardar entre buscas
+        # CORREÇÃO: Esta linha deve estar DENTRO do loop for, mas FORA do if/else
         if i < quantidade - 1:
             espera = random.randint(8, 15)
             print(f"⏳ Aguardando {espera}s...")
@@ -226,11 +220,6 @@ def main():
 # =========================
 # INICIAR O BOT
 # =========================
-
-if __name__ == "__main__":
-    main()                time.sleep(random.randint(10, 20))
-    
-    print(f"\n🏁 Concluído! {enviados}/{quantidade} enviados")
 
 if __name__ == "__main__":
     main()
