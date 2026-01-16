@@ -122,4 +122,8 @@ def buscar_produtos(url, usados):
 # ENVIAR TELEGRAM
 # =========================
 
-def enviar_telegram_
+    enviar_telegram(mensagem)
+    salvar_link(p["link"])
+    time.sleep(random.randint(3, 6))
+
+print("🏁 Execução finalizada com sucesso.")
