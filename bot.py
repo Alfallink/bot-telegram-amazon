@@ -102,23 +102,24 @@ def buscar_produtos(url, usados):
     soup = BeautifulSoup(r.text, "html.parser")
 
     produtos = []
-    itens = soup.select("div.zg-grid-general-faceout")
-    random.shuffle(itens)
+    cards = soup.select("a.a-link-normal[href*='/dp/']")
+    random.shuffle(cards)
 
-    for item in itens:
-        titulo = item.select_one("div._cDEzb_p13n-sc-css-line-clamp-3_g3dy1")
-        link = item.select_one("a.a-link-normal")
-
-        if not titulo or not link:
+    for a in cards:
+        href = a.get("href")
+        if not href:
             continue
 
-        link_limpo = "https://www.amazon.com.br" + link["href"].split("?")[0]
-
+        link_limpo = "https://www.amazon.com.br" + href.split("?")[0]
         if link_limpo in usados:
             continue
 
+        titulo = a.get_text(strip=True)
+        if not titulo or len(titulo) < 10:
+            continue
+
         produtos.append({
-            "titulo": titulo.get_text(strip=True),
+            "titulo": titulo,
             "link": link_limpo
         })
 
@@ -126,6 +127,7 @@ def buscar_produtos(url, usados):
             break
 
     return produtos
+
 
 # =========================
 # ENVIAR TELEGRAM
@@ -135,10 +137,11 @@ def enviar_telegram(texto):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": texto
+        "text": texto,
+        "disable_web_page_preview": True
     }
-    r = requests.post(url, json=payload)
-    print("📡 Telegram status:", r.status_code)
+    r = requests.post(url, json=payload, timeout=20)
+    print("📡 Telegram:", r.status_code, r.text)
 
 # =========================
 # EXECUÇÃO PRINCIPAL
