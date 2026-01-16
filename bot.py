@@ -13,6 +13,9 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 AFILIADO_TAG = os.getenv("AFILIADO_TAG")
 
+if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+    raise ValueError("Token ou Chat ID do Telegram não definidos")
+
 if not AFILIADO_TAG:
     raise ValueError("AFILIADO_TAG não definido nos Secrets do GitHub")
 
@@ -39,6 +42,8 @@ def gerar_mensagem(categoria, titulo, link):
     modelos = [
         f"""🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
 
+📂 Categoria: {categoria}
+
 📦 {titulo}
 
 ✔️ Um dos produtos mais procurados da categoria
@@ -53,12 +58,14 @@ Curadoria diária de tecnologia, games e eletrônicos.
 """,
         f"""⚡ DESTAQUE DO DIA – LOJA PONTO H ⚡
 
+📂 Categoria: {categoria}
+
 📦 {titulo}
 
 💡 Por que escolher este produto?
-✔️ Alta avaliação
+✔️ Alta procura
 ✔️ Ótimo custo-benefício
-✔️ Vendido pela Amazon
+✔️ Vendido e entregue pela Amazon
 
 👉 Confira a oferta:
 {link}
@@ -121,6 +128,30 @@ def buscar_produtos(url, usados):
 # =========================
 # ENVIAR TELEGRAM
 # =========================
+
+def enviar_telegram(texto):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": texto
+    }
+    requests.post(url, json=payload)
+
+# =========================
+# EXECUÇÃO PRINCIPAL
+# =========================
+
+print("🚀 Bot Loja Ponto H iniciado...")
+
+hora = datetime.utcnow().hour
+categoria_nome, categoria_url = CATEGORIAS[hora % len(CATEGORIAS)]
+
+links_usados = carregar_links_postados()
+produtos = buscar_produtos(categoria_url, links_usados)
+
+for p in produtos:
+    link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
+    mensagem = gerar_mensagem(categoria_nome, p["titulo"], link_afiliado)
 
     enviar_telegram(mensagem)
     salvar_link(p["link"])
