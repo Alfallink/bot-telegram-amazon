@@ -78,19 +78,22 @@ produtos = buscar_produtos(url)
 for p in produtos:
     link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
 
-🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
+mensagem = f"""🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
 
-📦 Produto que está entre os mais vendidos da Amazon
-Ideal para quem busca qualidade e bom custo-benefício.
+📦 {p['titulo']}
 
-✅ Compra segura
-✅ Entrega rápida
-✅ Garantia Amazon
+💡 Destaques do produto:
+✔️ Produto em alta na Amazon
+✔️ Ótima opção para uso diário
+✔️ Compra segura e entrega rápida
 
-👉 Aproveite agora:
-{LINK}
+🛒 Garanta o seu agora:
+{link_afiliado}
 
-🏬 Loja Ponto H – Curadoria diária de tecnologia, games e eletrônicos.
+🏬 Loja Ponto H
+Seleção diária de tecnologia, games e eletrônicos.
+"""
+
 
 
     enviar_telegram(mensagem)
