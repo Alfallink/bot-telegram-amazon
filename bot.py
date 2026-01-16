@@ -1,108 +1,135 @@
-import requests
 import os
-import time
 import random
+import time
+import requests
+from amazon_paapi import AmazonApi
 
 # =========================
-# SECRETS
+# AMAZON PA-API
+# =========================
+
+AMAZON_ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY")
+AMAZON_SECRET_KEY = os.getenv("AMAZON_SECRET_KEY")
+AMAZON_PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG")
+AMAZON_COUNTRY = "BR"
+
+amazon = AmazonApi(
+    AMAZON_ACCESS_KEY,
+    AMAZON_SECRET_KEY,
+    AMAZON_PARTNER_TAG,
+    AMAZON_COUNTRY
+)
+
+# =========================
+# TELEGRAM
 # =========================
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-AFILIADO_TAG = os.getenv("AFILIADO_TAG")
 
-if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-    raise ValueError("Token ou Chat ID do Telegram não definidos")
-
-if not AFILIADO_TAG:
-    raise ValueError("AFILIADO_TAG não definido")
-
-# =========================
-# CATEGORIAS + PALAVRAS-CHAVE
-# =========================
-# 🔥 AQUI ESTÁ A CORREÇÃO PRINCIPAL
-
-CATEGORIAS = {
-    "🔌 Eletrônicos": [
-        "smart tv",
-        "fone bluetooth",
-        "caixa de som",
-        "carregador usb"
-    ],
-    "🎮 Games": [
-        "controle ps4",
-        "controle xbox",
-        "headset gamer",
-        "jogo ps5"
-    ],
-    "💻 Computadores": [
-        "notebook",
-        "mouse gamer",
-        "teclado mecanico",
-        "monitor"
-    ],
-    "🎧 Áudio": [
-        "fone de ouvido",
-        "headphone bluetooth",
-        "soundbar"
-    ]
-}
-
-# =========================
-# MENSAGEM
-# =========================
-
-def gerar_mensagem(categoria, palavra, link):
-    return f"""🔥 OFERTA EM ALTA – LOJA PONTO H 🔥
-
-📂 Categoria: {categoria}
-🔎 Produto: {palavra.title()}
-
-💡 Seleção com os modelos mais vendidos do momento:
-✔️ Preços atualizados
-✔️ Entrega rápida Amazon
-✔️ Compra segura
-
-🛒 Ver produtos:
-{link}
-
-🏬 Loja Ponto H
-Tecnologia, games e eletrônicos selecionados.
-"""
-
-# =========================
-# ENVIAR TELEGRAM
-# =========================
-
-def enviar_telegram(texto):
+def enviar_telegram(mensagem):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": texto
+        "text": mensagem,
+        "disable_web_page_preview": False
     }
     r = requests.post(url, json=payload, timeout=20)
     print("📡 Telegram:", r.status_code)
 
 # =========================
+# PALAVRAS-CHAVE (ELETRÔNICOS TOP)
+# =========================
+
+KEYWORDS = [
+    "smartphone",
+    "iphone",
+    "celular android",
+    "tablet",
+    "smart tv",
+    "televisão 4k",
+    "echo dot",
+    "alexa",
+    "fone bluetooth",
+    "headphone",
+    "smartwatch",
+    "monitor gamer",
+    "notebook",
+    "mouse gamer",
+    "teclado mecanico",
+    "capinha celular",
+    "pelicula vidro"
+]
+
+# =========================
+# COPY AGRESSIVA
+# =========================
+
+def gerar_mensagem(categoria, titulo, link):
+    return f"""🔥 OFERTA IMPERDÍVEL – LOJA PONTO H 🔥
+
+📂 Categoria: {categoria}
+
+📦 {titulo}
+
+⚡ Alta procura
+💎 Produto premium
+🚚 Entrega rápida Amazon
+🔒 Compra 100% segura
+
+🛒 Garanta o seu agora:
+{link}
+
+🏬 Loja Ponto H
+Os eletrônicos mais desejados do momento.
+"""
+
+# =========================
+# BUSCAR PRODUTOS
+# =========================
+
+def buscar_produtos():
+    palavra = random.choice(KEYWORDS)
+
+    resultado = amazon.search_items(
+        keywords=palavra,
+        search_index="Electronics",
+        item_count=random.randint(3, 6),
+        resources=[
+            "ItemInfo.Title",
+            "DetailPageURL"
+        ]
+    )
+
+    if not resultado or not resultado.items:
+        return []
+
+    produtos = []
+    for item in resultado.items:
+        try:
+            produtos.append({
+                "titulo": item.item_info.title.display_value,
+                "link": item.detail_page_url
+            })
+        except:
+            pass
+
+    return produtos
+
+# =========================
 # EXECUÇÃO PRINCIPAL
 # =========================
 
-QTDE_POR_EXECUCAO = 5  # 5 links por hora
+print("🚀 Bot Loja Ponto H iniciado")
 
-for i in range(QTDE_POR_EXECUCAO):
-    categoria = random.choice(list(CATEGORIAS.keys()))
-    palavra = random.choice(CATEGORIAS[categoria])
+produtos = buscar_produtos()
+print("📦 Produtos encontrados:", len(produtos))
 
-    # 🔗 LINK DE BUSCA CORRETO (COM PRODUTOS)
-    query = palavra.replace(" ", "+")
-    link_busca = f"https://www.amazon.com.br/s?k={query}&tag={AFILIADO_TAG}"
-
-    print(f"🔗 Enviando: {categoria} | {palavra}")
-
-    mensagem = gerar_mensagem(categoria, palavra, link_busca)
+for p in produtos:
+    mensagem = gerar_mensagem("Eletrônicos Premium", p["titulo"], p["link"])
     enviar_telegram(mensagem)
 
-    if i < QTDE_POR_EXECUCAO - 1:
-        time.sleep(random.randint(180, 360))  # 3 a 6 minutos
+    # ⏳ Intervalo humano (2 a 6 minutos)
+    time.sleep(random.randint(120, 360))
 
-print("🏁 Execução finalizada com sucesso.")
+print("🏁 Execução finalizada")
