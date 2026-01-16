@@ -82,14 +82,14 @@ Curadoria diária de tecnologia, games e eletrônicos.
 POSTED_FILE = "posted_links.txt"
 
 def carregar_links_postados():
+    # Se o arquivo não existir, cria vazio
     if not os.path.exists(POSTED_FILE):
+        open(POSTED_FILE, "w").close()
         return set()
-    with open(POSTED_FILE, "r") as f:
-        return set(l.strip() for l in f.readlines())
 
-def salvar_link(link):
-    with open(POSTED_FILE, "a") as f:
-        f.write(link + "\n")
+    with open(POSTED_FILE, "r") as f:
+        return set(l.strip() for l in f.readlines() if l.strip())
+
 
 # =========================
 # BUSCAR PRODUTOS
