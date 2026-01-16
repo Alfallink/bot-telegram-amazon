@@ -1,4 +1,4 @@
-name: Bot Amazon Telegram
+name: Bot Shopee Telegram
 
 on:
   schedule:
@@ -14,5 +14,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install amazon-paapi requests
+      - run: pip install requests beautifulsoup4
       - run: python bot.py
