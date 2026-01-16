@@ -35,39 +35,13 @@ HEADERS = {
 # =========================
 
 CATEGORIAS = {
-    "📱 Celulares": [
-        "iphone",
-        "samsung galaxy",
-        "xiaomi celular",
-        "motorola celular"
-    ],
-    "📺 Televisões": [
-        "smart tv",
-        "tv 4k",
-        "android tv"
-    ],
-    "🎧 Fones de Ouvido": [
-        "fone bluetooth",
-        "headphone",
-        "fone gamer"
-    ],
-    "⌚ Smartwatch": [
-        "smartwatch",
-        "relogio inteligente"
-    ],
-    "🛡️ Capinhas e Películas": [
-        "capinha celular",
-        "pelicula vidro"
-    ],
-    "🔊 Assistentes Virtuais": [
-        "echo dot",
-        "alexa"
-    ],
-    "💻 Eletrônicos em Geral": [
-        "tablet",
-        "monitor",
-        "notebook"
-    ]
+    "📱 Celulares": ["iphone", "samsung galaxy", "xiaomi celular", "motorola celular"],
+    "📺 Televisões": ["smart tv", "tv 4k", "android tv"],
+    "🎧 Fones de Ouvido": ["fone bluetooth", "headphone", "fone gamer"],
+    "⌚ Smartwatch": ["smartwatch", "relogio inteligente"],
+    "🛡️ Capinhas e Películas": ["capinha celular", "pelicula vidro"],
+    "🔊 Assistentes Virtuais": ["echo dot", "alexa"],
+    "💻 Eletrônicos em Geral": ["tablet", "monitor", "notebook"]
 }
 
 # =========================
@@ -75,19 +49,172 @@ CATEGORIAS = {
 # =========================
 
 def enviar_telegram(texto):
-    """Envia mensagem para o Telegram"""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": texto,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
+        "parse_mode": "HTML"
     }
-
+    
     try:
         r = requests.post(url, json=payload, timeout=15)
-        r.raise_for_status()
-        print(f"✅ Telegram: Mensagem enviada (status {r.status_code})")
+        print(f"📡 Telegram: {r.status_code}")
+        return r.status_code == 200
+    except Exception as e:
+        print(f"❌ Erro Telegram: {e}")
+        return False
+
+# =========================
+# GERAR LINK AFILIADO
+# =========================
+
+def gerar_link_afiliado(link_produto):
+    return f"{SHOPEE_AFILIADO_BASE}?u={link_produto}"
+
+# =========================
+# BUSCAR PRODUTOS SHOPEE
+# =========================
+
+def buscar_produtos(palavra_chave, limite=1):
+    print(f"🔎 Buscando: {palavra_chave}")
+    
+    url = "https://shopee.com.br/api/v4/search/search_items"
+    params = {
+        "by": "relevancy",
+        "keyword": palavra_chave,
+        "limit": limite,
+        "newest": 0,
+        "order": "desc",
+        "page_type": "search"
+    }
+    
+    try:
+        r = requests.get(url, headers=HEADERS, params=params, timeout=10)
+        
+        if r.status_code != 200:
+            print(f"⚠️ Status Shopee: {r.status_code}")
+            return []
+        
+        data = r.json()
+        produtos = []
+        
+        for item in data.get("items", []):
+            info = item.get("item_basic", {})
+            
+            titulo = info.get("name", "").strip()
+            shopid = info.get("shopid")
+            itemid = info.get("itemid")
+            
+            if not titulo or not shopid or not itemid:
+                continue
+            
+            # Corrigindo formato do link
+            link_produto = f"https://shopee.com.br/product/{shopid}/{itemid}"
+            link_afiliado = gerar_link_afiliado(link_produto)
+            
+            produtos.append({
+                "titulo": titulo,
+                "link": link_afiliado,
+                "preco": info.get("price", 0) / 100000 if info.get("price") else 0,
+                "vendidos": info.get("historical_sold", 0)
+            })
+            
+            if len(produtos) >= limite:
+                break
+        
+        return produtos
+        
+    except Exception as e:
+        print(f"❌ Erro na busca: {e}")
+        return []
+
+# =========================
+# GERAR MENSAGEM
+# =========================
+
+def gerar_mensagem(categoria, produto):
+    titulo = produto["titulo"]
+    link = produto["link"]
+    
+    extras = []
+    if produto.get("preco", 0) > 0:
+        extras.append(f"💰 Preço: R$ {produto['preco']:,.2f}")
+    if produto.get("vendidos", 0) > 0:
+        extras.append(f"📊 Vendidos: {produto['vendidos']}+")
+    
+    info_extras = "\n".join(extras) + "\n" if extras else ""
+    
+    return f"""🔥 <b>OFERTA EM ALTA – LOJA PONTO H</b> 🔥
+
+📂 <b>Categoria:</b> {categoria}
+{info_extras}
+📦 <b>Produto:</b> {titulo}
+
+✅ Alta procura
+✅ Excelente custo-benefício
+✅ Compra segura
+
+🛒 <b>Compre agora:</b>
+{link}
+
+🏬 <b>Loja Ponto H</b>
+Tecnologia selecionada com qualidade.
+
+⚠️ <i>Ofertas limitadas!</i>
+"""
+
+# =========================
+# EXECUÇÃO PRINCIPAL
+# =========================
+
+def main():
+    print("🚀 Bot Shopee iniciado")
+    print("=" * 40)
+    
+    # Quantidade aleatória de produtos
+    quantidade = random.randint(2, 4)
+    print(f"📦 Enviando {quantidade} produtos")
+    
+    enviados = 0
+    
+    for i in range(quantidade):
+        print(f"\n🔍 [{i+1}/{quantidade}]")
+        
+        # Seleciona aleatoriamente
+        categoria = random.choice(list(CATEGORIAS.keys()))
+        palavra = random.choice(CATEGORIAS[categoria])
+        
+        print(f"Categoria: {categoria}")
+        print(f"Palavra: {palavra}")
+        
+        # Busca produto
+        produtos = buscar_produtos(palavra, limite=1)
+        
+        if not produtos:
+            print("⚠️ Nenhum produto encontrado")
+            time.sleep(5)
+            continue
+        
+        # Envia para Telegram
+        produto = produtos[0]
+        mensagem = gerar_mensagem(categoria, produto)
+        
+        if enviar_telegram(mensagem):
+            enviados += 1
+            print(f"✅ Enviado: {produto['titulo'][:50]}...")
+        else:
+            print("❌ Falha no envio")
+        
+        # Aguarda entre envios
+        if i < quantidade - 1:
+            espera = random.randint(15, 25)
+            print(f"⏳ Aguardando {espera}s...")
+            time.sleep(espera)
+    
+    print(f"\n🏁 Concluído! {enviados}/{quantidade} enviados")
+
+if __name__ == "__main__":
+    main()        print(f"✅ Telegram: Mensagem enviada (status {r.status_code})")
         return True
     except requests.exceptions.RequestException as e:
         print(f"❌ Erro Telegram: {e}")
