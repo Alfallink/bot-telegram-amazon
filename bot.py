@@ -5,7 +5,7 @@ import time
 import random
 
 # =========================
-# VARIÁVEIS (SECRETS)
+# SECRETS
 # =========================
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -17,12 +17,12 @@ HEADERS = {
 }
 
 # =========================
-# CATEGORIAS AMAZON
+# CATEGORIAS
 # =========================
 
 CATEGORIAS = {
     "🔌 Eletrônicos": "https://www.amazon.com.br/gp/bestsellers/electronics",
-    "🎮 Jogos & Videogame": "https://www.amazon.com.br/gp/bestsellers/videogames",
+    "🎮 Games & Videogame": "https://www.amazon.com.br/gp/bestsellers/videogames",
     "🎵 Música": "https://www.amazon.com.br/gp/bestsellers/music",
     "💻 Computadores": "https://www.amazon.com.br/gp/bestsellers/computers"
 }
@@ -37,7 +37,10 @@ def buscar_produtos(url):
 
     produtos = []
 
-    for item in soup.select("div.zg-grid-general-faceout")[:5]:
+    itens = soup.select("div.zg-grid-general-faceout")
+    random.shuffle(itens)
+
+    for item in itens[:5]:
         titulo = item.select_one("div._cDEzb_p13n-sc-css-line-clamp-3_g3dy1")
         link = item.select_one("a.a-link-normal")
 
@@ -55,11 +58,11 @@ def buscar_produtos(url):
 # ENVIAR TELEGRAM
 # =========================
 
-def enviar_telegram(mensagem):
+def enviar_telegram(texto):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensagem
+        "text": texto
     }
     requests.post(url, json=payload)
 
@@ -67,22 +70,31 @@ def enviar_telegram(mensagem):
 # EXECUÇÃO
 # =========================
 
-print("🚀 Bot iniciado...")
+print("🚀 Bot Loja Ponto H iniciado...")
 
-for categoria, url in CATEGORIAS.items():
-    produtos = buscar_produtos(url)
+categoria, url = random.choice(list(CATEGORIAS.items()))
+produtos = buscar_produtos(url)
 
-    for p in produtos:
-        link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
+for p in produtos:
+    link_afiliado = f"{p['link']}?tag={AFILIADO_TAG}"
 
-        mensagem = f"""{categoria}
+    mensagem = f"""🔥 OFERTA SELECIONADA – LOJA PONTO H 🔥
 
-📦 {p['titulo']}
+📦 Produto em destaque:
+{p['titulo']}
 
-👉 {link_afiliado}
+💡 Por que vale a pena?
+✔️ Produto em alta na Amazon
+✔️ Excelente custo-benefício
+✔️ Ideal para uso diário ou presente
+
+🛒 Compre com segurança:
+{link_afiliado}
+
+🏬 Loja Ponto H – Tecnologia, games e eletrônicos com as melhores ofertas.
 """
 
-        enviar_telegram(mensagem)
-        time.sleep(3)
+    enviar_telegram(mensagem)
+    time.sleep(3)
 
-print("🏁 Finalizado com sucesso!")
+print("🏁 Execução finalizada.")
