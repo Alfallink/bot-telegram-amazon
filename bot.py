@@ -206,7 +206,7 @@ for i in range(QTDE_POR_EXECUCAO):
     if i < QTDE_POR_EXECUCAO - 1:
         time.sleep(15)
 
-print("🏁 Execução finalizada com sucesso")    }
+print("🏁 Execução finalizada com sucesso")
 
     r = requests.get(url, params=params, headers=headers, timeout=20)
     data = r.json()
