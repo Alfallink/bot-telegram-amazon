@@ -4,7 +4,7 @@ import random
 import requests
 
 # =========================
-# SECRETS (GITHUB ACTIONS)
+# SECRETS
 # =========================
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -21,7 +21,7 @@ if not SHOPEE_AFILIADO_BASE:
     raise ValueError("SHOPEE_AFILIADO_BASE ausente")
 
 # =========================
-# CONFIGURAÇÕES
+# CONFIG
 # =========================
 
 HEADERS = {
@@ -30,7 +30,7 @@ HEADERS = {
 }
 
 # =========================
-# CATEGORIAS + PALAVRAS-CHAVE
+# CATEGORIAS
 # =========================
 
 CATEGORIAS = {
@@ -79,23 +79,22 @@ def enviar_telegram(texto):
         "chat_id": TELEGRAM_CHAT_ID,
         "text": texto
     }
-
     r = requests.post(url, json=payload, timeout=10)
     print("📡 Telegram status:", r.status_code)
 
 # =========================
-# GERAR LINK AFILIADO
+# LINK AFILIADO
 # =========================
 
 def gerar_link_afiliado(link_produto):
     return f"{SHOPEE_AFILIADO_BASE}?u={link_produto}"
 
 # =========================
-# BUSCAR PRODUTOS SHOPEE (JSON)
+# BUSCAR PRODUTOS (JSON)
 # =========================
 
 def buscar_produtos(palavra_chave, limite=1):
-    print(f"🌐 Buscando na Shopee: {palavra_chave}")
+    print(f"🌐 Buscando: {palavra_chave}")
 
     url = "https://shopee.com.br/api/v4/search/search_items"
 
@@ -113,7 +112,7 @@ def buscar_produtos(palavra_chave, limite=1):
             url,
             headers=HEADERS,
             params=params,
-            timeout=8  # evita travamento
+            timeout=8
         )
 
         if r.status_code != 200:
@@ -156,7 +155,7 @@ def buscar_produtos(palavra_chave, limite=1):
     return produtos
 
 # =========================
-# COPY PROFISSIONAL
+# MENSAGEM
 # =========================
 
 def gerar_mensagem(categoria, titulo, link):
@@ -178,119 +177,31 @@ Tecnologia e eletrônicos selecionados.
 """
 
 # =========================
-# EXECUÇÃO PRINCIPAL
+# EXECUÇÃO
 # =========================
 
 print("🚀 Bot Shopee Loja Ponto H iniciado")
 
 QTDE_POR_EXECUCAO = random.randint(3, 5)
-print("📦 Quantidade desta execução:", QTDE_POR_EXECUCAO)
+print("📦 Produtos nesta execução:", QTDE_POR_EXECUCAO)
 
 for i in range(QTDE_POR_EXECUCAO):
     categoria = random.choice(list(CATEGORIAS.keys()))
     palavra = random.choice(CATEGORIAS[categoria])
 
-    print(f"🔎 ({i+1}/{QTDE_POR_EXECUCAO}) Categoria: {categoria} | Palavra: {palavra}")
+    print(f"🔎 ({i+1}/{QTDE_POR_EXECUCAO}) {categoria} | {palavra}")
 
     produtos = buscar_produtos(palavra, limite=1)
 
     if not produtos:
-        print("⚠️ Nenhum produto retornado, pulando")
+        print("⚠️ Nenhum produto retornado")
         continue
 
     for p in produtos:
         mensagem = gerar_mensagem(categoria, p["titulo"], p["link"])
         enviar_telegram(mensagem)
 
-    # ⏳ intervalo curto (estável para GitHub)
     if i < QTDE_POR_EXECUCAO - 1:
         time.sleep(15)
 
 print("🏁 Execução finalizada com sucesso")
-
-    r = requests.get(url, params=params, headers=headers, timeout=20)
-    data = r.json()
-
-    produtos = []
-
-    for item in data.get("items", []):
-        info = item.get("item_basic", {})
-
-        titulo = info.get("name")
-        shopid = info.get("shopid")
-        itemid = info.get("itemid")
-
-        if not titulo or not shopid or not itemid:
-            continue
-
-        link_produto = f"https://shopee.com.br/product/{shopid}/{itemid}"
-        link_afiliado = f"{SHOPEE_AFILIADO_BASE}?u={link_produto}"
-
-        produtos.append({
-            "titulo": titulo,
-            "link": link_afiliado
-        })
-
-        if len(produtos) >= limite:
-            break
-
-    return produtos
-
-# =========================
-# TELEGRAM
-# =========================
-
-def enviar_telegram(msg):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    requests.post(url, json={
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": msg
-    })
-
-# =========================
-# COPY AGRESSIVA
-# =========================
-
-def gerar_mensagem(categoria, titulo, link):
-    return f"""🔥 OFERTA IMPERDÍVEL – LOJA PONTO H 🔥
-
-📂 Categoria: {categoria}
-
-📦 {titulo}
-
-⚡ Alta procura
-💎 Excelente custo-benefício
-🚚 Envio rápido Shopee
-🔒 Compra segura
-
-🛒 Garanta o seu agora:
-{link}
-
-🏬 Loja Ponto H
-Os eletrônicos mais desejados do momento.
-"""
-
-# =========================
-# EXECUÇÃO PRINCIPAL
-# =========================
-
-print("🚀 Bot Shopee Loja Ponto H iniciado")
-
-QTDE_POR_EXECUCAO = random.randint(3, 6)
-
-for i in range(QTDE_POR_EXECUCAO):
-    categoria = random.choice(list(CATEGORIAS.keys()))
-    palavra = random.choice(CATEGORIAS[categoria])
-
-    print(f"🔎 Buscando: {categoria} | {palavra}")
-
-    produtos = buscar_produtos(palavra, limite=1)
-
-    for p in produtos:
-        mensagem = gerar_mensagem(categoria, p["titulo"], p["link"])
-        enviar_telegram(mensagem)
-
-    if i < QTDE_POR_EXECUCAO - 1:
-        time.sleep(random.randint(120, 360))  # 2 a 6 minutos
-
-print("🏁 Execução finalizada")
