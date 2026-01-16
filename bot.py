@@ -40,7 +40,7 @@ def buscar_produtos(url):
     itens = soup.select("div.zg-grid-general-faceout")
     random.shuffle(itens)
 
-    for item in itens[:5]:
+    for item in itens[:3]:
         titulo = item.select_one("div._cDEzb_p13n-sc-css-line-clamp-3_g3dy1")
         link = item.select_one("a.a-link-normal")
 
