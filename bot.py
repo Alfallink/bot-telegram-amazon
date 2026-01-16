@@ -102,10 +102,10 @@ def buscar_produtos(url, usados):
     soup = BeautifulSoup(r.text, "html.parser")
 
     produtos = []
-    cards = soup.select("a.a-link-normal[href*='/dp/']")
-    random.shuffle(cards)
+    links = soup.select("a.a-link-normal[href*='/dp/']")
+    random.shuffle(links)
 
-    for a in cards:
+    for a in links:
         href = a.get("href")
         if not href:
             continue
@@ -127,6 +127,7 @@ def buscar_produtos(url, usados):
             break
 
     return produtos
+
 
 
 # =========================
