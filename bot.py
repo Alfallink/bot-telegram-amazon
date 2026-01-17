@@ -8,8 +8,6 @@ ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY")
 SECRET_KEY = os.getenv("AMAZON_SECRET_KEY")
 PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG")
 
-if not PARTNER_TAG:
-    raise Exception("AMAZON_PARTNER_TAG não configurado nos Secrets do GitHub")
 
 amazon = AmazonApi(
     ACCESS_KEY,
