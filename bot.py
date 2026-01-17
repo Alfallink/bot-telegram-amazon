@@ -1,41 +1,25 @@
 import os
 import random
 import requests
-from bs4 import BeautifulSoup
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-AFFILIATE_LINK = os.getenv("SHOPEE_AFFILIATE_LINK")  # link base afiliado
+AFFILIATE_LINK = os.getenv("SHOPEE_AFFILIATE_LINK")
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Accept-Language": "pt-BR,pt;q=0.9"
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json"
 }
 
-SEARCH_URLS = [
-    "https://shopee.com.br/search?keyword=fone%20bluetooth",
-    "https://shopee.com.br/search?keyword=smartphone",
-    "https://shopee.com.br/search?keyword=tablet",
-    "https://shopee.com.br/search?keyword=smartwatch",
-    "https://shopee.com.br/search?keyword=mouse",
-    "https://shopee.com.br/search?keyword=teclado",
-    "https://shopee.com.br/search?keyword=eletronicos"
+KEYWORDS = [
+    "fone bluetooth",
+    "smartphone",
+    "tablet",
+    "smartwatch",
+    "mouse",
+    "teclado",
+    "eletronicos"
 ]
-
-ENVIADOS_FILE = "enviados.txt"
-
-
-def ja_enviado(link):
-    if not os.path.exists(ENVIADOS_FILE):
-        return False
-    with open(ENVIADOS_FILE, "r", encoding="utf-8") as f:
-        return link in f.read()
-
-
-def marcar_enviado(link):
-    with open(ENVIADOS_FILE, "a", encoding="utf-8") as f:
-        f.write(link + "\n")
-
 
 def enviar_telegram(titulo, link, imagem, preco):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
@@ -45,49 +29,62 @@ def enviar_telegram(titulo, link, imagem, preco):
         "caption": (
             f"🔥 *OFERTA SHOPEE*\n\n"
             f"📦 {titulo}\n"
-            f"💰 {preco}\n\n"
+            f"💰 R$ {preco}\n\n"
             f"👉 [Comprar com desconto]({link})"
         ),
         "parse_mode": "Markdown"
     }
     requests.post(url, json=payload)
 
-
 def buscar_produtos():
-    url = random.choice(SEARCH_URLS)
-    print("🔎 Buscando:", url)
+    keyword = random.choice(KEYWORDS)
+    print("🔎 Palavra-chave:", keyword)
 
-    response = requests.get(url, headers=HEADERS, timeout=20)
-    soup = BeautifulSoup(response.text, "html.parser")
+    params = {
+        "by": "relevancy",
+        "keyword": keyword,
+        "limit": 20,
+        "newest": 0,
+        "order": "desc",
+        "page_type": "search",
+        "scenario": "PAGE_GLOBAL_SEARCH"
+    }
+
+    response = requests.get(
+        "https://shopee.com.br/api/v4/search/search_items",
+        headers=HEADERS,
+        params=params,
+        timeout=20
+    )
+
+    data = response.json()
+    items = data.get("items", [])
 
     produtos = []
 
-    for item in soup.select("div.shopee-search-item-result__item"):
-        link_tag = item.select_one("a")
-        img_tag = item.select_one("img")
-        titulo_tag = item.select_one("div._10Wbs-._5SSWfi.UjjMrh")
-        preco_tag = item.select_one("span._29R_un")
-
-        if not link_tag or not img_tag or not titulo_tag:
+    for item in items:
+        info = item.get("item_basic")
+        if not info:
             continue
 
-        link = "https://shopee.com.br" + link_tag.get("href")
-        link_afiliado = AFFILIATE_LINK + link.split("?")[0]
+        titulo = info.get("name")
+        preco = info.get("price") / 100000 if info.get("price") else None
+        imagem = f"https://cf.shopee.com.br/file/{info.get('image')}"
 
-        if ja_enviado(link_afiliado):
+        shop_id = info.get("shopid")
+        item_id = info.get("itemid")
+
+        if not shop_id or not item_id:
             continue
 
-        imagem = img_tag.get("src")
-        titulo = titulo_tag.text.strip()
-        preco = preco_tag.text.strip() if preco_tag else "Confira no link"
+        link = f"{AFFILIATE_LINK}https://shopee.com.br/product/{shop_id}/{item_id}"
 
-        produtos.append((titulo, link_afiliado, imagem, preco))
+        produtos.append((titulo, link, imagem, preco))
 
         if len(produtos) >= 5:
             break
 
     return produtos
-
 
 def main():
     print("🚀 Bot Shopee iniciado")
@@ -100,9 +97,7 @@ def main():
 
     for titulo, link, imagem, preco in produtos:
         enviar_telegram(titulo, link, imagem, preco)
-        marcar_enviado(link)
         print("✅ Enviado:", titulo)
-
 
 if __name__ == "__main__":
     main()
