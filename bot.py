@@ -1,13 +1,14 @@
-import os
-import random
-import requests
-from amazon_paapi import AmazonApi
+ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY")
+SECRET_KEY = os.getenv("AMAZON_SECRET_KEY")
+PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG")
 
-# ====== AMAZON CONFIG ======
+if not PARTNER_TAG:
+    raise Exception("AMAZON_PARTNER_TAG não configurado nos Secrets do GitHub")
+
 amazon = AmazonApi(
-    os.getenv("AMAZON_ACCESS_KEY"),
-    os.getenv("AMAZON_SECRET_KEY"),
-    os.getenv("AMAZON_PARTNER_TAG"),
+    ACCESS_KEY,
+    SECRET_KEY,
+    PARTNER_TAG,
     "BR"
 )
 
