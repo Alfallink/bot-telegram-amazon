@@ -1,103 +1,77 @@
 import os
-import random
+import time
+import hmac
+import hashlib
 import requests
+import json
+
+PARTNER_ID = int(os.getenv("SHOPEE_PARTNER_ID"))
+PARTNER_KEY = os.getenv("SHOPEE_PARTNER_KEY")
+PARTNER_SECRET = os.getenv("SHOPEE_PARTNER_SECRET")
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-AFFILIATE_LINK = os.getenv("SHOPEE_AFFILIATE_LINK")
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0",
-    "Accept": "application/json"
-}
+BASE_URL = "https://partner.shopeemobile.com"
+PATH = "/api/v2/product/search_item"
 
-KEYWORDS = [
-    "fone bluetooth",
-    "smartphone",
-    "tablet",
-    "smartwatch",
-    "mouse",
-    "teclado",
-    "eletronicos"
-]
+def generate_signature(path, timestamp):
+    base_string = f"{PARTNER_ID}{path}{timestamp}"
+    return hmac.new(
+        PARTNER_SECRET.encode(),
+        base_string.encode(),
+        hashlib.sha256
+    ).hexdigest()
 
-def enviar_telegram(titulo, link, imagem, preco):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
-    payload = {
-        "chat_id": CHAT_ID,
-        "photo": imagem,
-        "caption": (
-            f"🔥 *OFERTA SHOPEE*\n\n"
-            f"📦 {titulo}\n"
-            f"💰 R$ {preco}\n\n"
-            f"👉 [Comprar com desconto]({link})"
-        ),
-        "parse_mode": "Markdown"
-    }
-    requests.post(url, json=payload)
-
-def buscar_produtos():
-    keyword = random.choice(KEYWORDS)
-    print("🔎 Palavra-chave:", keyword)
+def shopee_request():
+    timestamp = int(time.time())
+    sign = generate_signature(PATH, timestamp)
 
     params = {
-        "by": "relevancy",
-        "keyword": keyword,
-        "limit": 20,
-        "newest": 0,
-        "order": "desc",
-        "page_type": "search",
-        "scenario": "PAGE_GLOBAL_SEARCH"
+        "partner_id": PARTNER_ID,
+        "timestamp": timestamp,
+        "sign": sign,
+        "page_size": 5
     }
 
-    response = requests.get(
-        "https://shopee.com.br/api/v4/search/search_items",
-        headers=HEADERS,
-        params=params,
-        timeout=20
-    )
+    url = BASE_URL + PATH
+    response = requests.get(url, params=params, timeout=20)
+    return response.json()
 
-    data = response.json()
-    items = data.get("items", [])
-
-    produtos = []
-
-    for item in items:
-        info = item.get("item_basic")
-        if not info:
-            continue
-
-        titulo = info.get("name")
-        preco = info.get("price") / 100000 if info.get("price") else None
-        imagem = f"https://cf.shopee.com.br/file/{info.get('image')}"
-
-        shop_id = info.get("shopid")
-        item_id = info.get("itemid")
-
-        if not shop_id or not item_id:
-            continue
-
-        link = f"{AFFILIATE_LINK}https://shopee.com.br/product/{shop_id}/{item_id}"
-
-        produtos.append((titulo, link, imagem, preco))
-
-        if len(produtos) >= 5:
-            break
-
-    return produtos
+def enviar_telegram(texto):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    requests.post(url, json={
+        "chat_id": CHAT_ID,
+        "text": texto,
+        "parse_mode": "Markdown"
+    })
 
 def main():
-    print("🚀 Bot Shopee iniciado")
+    print("🚀 Bot Shopee API iniciado")
 
-    produtos = buscar_produtos()
+    data = shopee_request()
+    items = data.get("items", [])
 
-    if not produtos:
-        print("⚠️ Nenhum produto encontrado")
+    if not items:
+        print("⚠️ Nenhum produto retornado pela API")
         return
 
-    for titulo, link, imagem, preco in produtos:
-        enviar_telegram(titulo, link, imagem, preco)
-        print("✅ Enviado:", titulo)
+    for item in items:
+        nome = item.get("item_name")
+        preco = item.get("price_info", {}).get("price")
+        link = item.get("item_link")
+
+        mensagem = f"""
+🔥 *OFERTA SHOPEE*
+
+📦 {nome}
+💰 {preco}
+
+👉 Comprar:
+{link}
+"""
+        enviar_telegram(mensagem)
+        print("✅ Enviado:", nome)
 
 if __name__ == "__main__":
     main()
