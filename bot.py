@@ -51,15 +51,26 @@ def enviar_telegram(titulo, link, imagem):
 
 def buscar_produtos():
     url = random.choice(SEARCH_URLS)
+    print("🔎 Buscando em:", url)
+
     response = requests.get(url, headers=HEADERS, timeout=20)
+    print("🌐 Status HTTP:", response.status_code)
+
     soup = BeautifulSoup(response.text, "html.parser")
+
+    resultados = soup.select('div[data-component-type="s-search-result"]')
+    print("📦 Resultados encontrados:", len(resultados))
 
     produtos = []
 
-    for item in soup.select('[data-component-type="s-search-result"]'):
-        titulo_tag = item.select_one("span.a-size-medium")
-        link_tag = item.select_one("a.a-link-normal")
-        img_tag = item.select_one("img.s-image")
+    for item in resultados:
+        asin = item.get("data-asin")
+        if not asin:
+            continue
+
+        titulo_tag = item.select_one("h2 span")
+        link_tag = item.select_one("h2 a")
+        img_tag = item.select_one("img")
 
         if not titulo_tag or not link_tag or not img_tag:
             continue
@@ -81,7 +92,9 @@ def buscar_produtos():
         if len(produtos) >= 5:
             break
 
+    print("✅ Produtos válidos:", len(produtos))
     return produtos
+
 
 
 def main():
