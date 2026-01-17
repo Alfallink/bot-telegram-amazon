@@ -1,3 +1,9 @@
+import os        
+import random
+import requests
+from amazon_paapi import AmazonApi
+
+
 ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY")
 SECRET_KEY = os.getenv("AMAZON_SECRET_KEY")
 PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG")
