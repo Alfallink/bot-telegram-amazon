@@ -8,7 +8,15 @@ url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
 resp = requests.post(url, json={
     "chat_id": CHAT_ID,
-    "text": "✅ Teste OK: GitHub → Telegram funcionando"
-})
+    
+    def enviar_telegram(titulo, link, imagem):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+    requests.post(url, json={
+        "chat_id": CHAT_ID,
+        "photo": imagem,
+        "caption": f"🔥 *ELETRÔNICO EM DESTAQUE*\n\n📦 {titulo}\n\n👉 [Ver na Amazon]({link})",
+        "parse_mode": "Markdown"
+    })
+
 
 print(resp.text)
