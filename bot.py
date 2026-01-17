@@ -1,38 +1,29 @@
-import os        
+import os
 import random
 import requests
-from amazon_paapi import AmazonApi
+from bs4 import BeautifulSoup
 
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+AFFILIATE_TAG = os.getenv("AMAZON_PARTNER_TAG")
 
-ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY")
-SECRET_KEY = os.getenv("AMAZON_SECRET_KEY")
-PARTNER_TAG = os.getenv("AMAZON_PARTNER_TAG")
-
-
-amazon = AmazonApi(
-    ACCESS_KEY,
-    SECRET_KEY,
-    PARTNER_TAG,
-    "BR"
-)
-
-KEYWORDS = [
-    "fone de ouvido bluetooth",
-    "smartphone",
-    "tablet android",
-    "smart tv",
-    "echo dot alexa",
-    "teclado mecanico",
-    "mouse gamer",
-    "gadget eletronico"
+SEARCH_URLS = [
+    "https://www.amazon.com.br/s?k=fone+bluetooth",
+    "https://www.amazon.com.br/s?k=smartphone",
+    "https://www.amazon.com.br/s?k=tablet",
+    "https://www.amazon.com.br/s?k=smart+tv",
+    "https://www.amazon.com.br/s?k=echo+dot",
+    "https://www.amazon.com.br/s?k=teclado+usb",
+    "https://www.amazon.com.br/s?k=mouse+usb"
 ]
 
-# ====== TELEGRAM CONFIG ======
-TELEGRAM_URL = f"https://api.telegram.org/bot{os.getenv('TELEGRAM_BOT_TOKEN')}/sendMessage"
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+HEADERS = {
+    "User-Agent": "Mozilla/5.0"
+}
 
 def enviar_telegram(texto):
-    requests.post(TELEGRAM_URL, json={
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    requests.post(url, json={
         "chat_id": CHAT_ID,
         "text": texto,
         "parse_mode": "Markdown",
@@ -40,46 +31,36 @@ def enviar_telegram(texto):
     })
 
 def buscar_produtos():
-    keyword = random.choice(KEYWORDS)
+    url = random.choice(SEARCH_URLS)
+    html = requests.get(url, headers=HEADERS).text
+    soup = BeautifulSoup(html, "html.parser")
 
-    response = amazon.search_items(
-        keywords=keyword,
-        item_count=10
-    )
+    produtos = []
+    for item in soup.select("div.s-result-item"):
+        link = item.select_one("a.a-link-normal")
+        titulo = item.select_one("span.a-text-normal")
 
-    if not response or not response.items:
-        return []
+        if link and titulo:
+            href = "https://www.amazon.com.br" + link.get("href")
+            afiliado = f"{href}&tag={AFFILIATE_TAG}"
+            produtos.append((titulo.text.strip(), afiliado))
 
-    return response.items
+        if len(produtos) >= 5:
+            break
 
+    return produtos
 
 def main():
     produtos = buscar_produtos()
-    enviados = 0
+    for titulo, link in produtos:
+        mensagem = f"""
+🔥 *ELETRÔNICO EM DESTAQUE*
 
-    for item in produtos:
-        try:
-            titulo = item.item_info.title.display_value
-            preco = item.offers.listings[0].price.display_amount
-            link = item.detail_page_url
+📦 {titulo}
 
-            mensagem = f"""
-🔥 *OFERTA ELETRÔNICA*
-
-📦 *{titulo}*
-💰 *{preco}*
-🚀 Entrega Amazon
-
-👉 [Comprar com desconto]({link})
+👉 [Ver na Amazon]({link})
 """
-            enviar_telegram(mensagem)
-            enviados += 1
-
-            if enviados >= 5:
-                break
-
-        except Exception:
-            continue
+        enviar_telegram(mensagem)
 
 if __name__ == "__main__":
     main()
