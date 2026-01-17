@@ -1,9 +1,8 @@
-name: Amazon Telegram Bot
+name: Shopee Telegram Bot
 
 on:
   schedule:
-    # Horários em UTC (Brasil = UTC-3)
-    # 08h, 10h, 12h, 14h, 16h, 18h, 20h, 22h
+    # Brasil UTC-3 → 08h às 22h
     - cron: '0 11,13,15,17,19,21,23 * * *'
   workflow_dispatch:
 
@@ -12,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -29,5 +27,5 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          SHOPEE_AFFILIATE_LINK: ${{ secrets.SHOPEE_AFFILIATE_LINK }}
         run: python bot.py
