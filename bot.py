@@ -36,16 +36,17 @@ def enviar_telegram(texto):
 
 def buscar_produtos():
     keyword = random.choice(KEYWORDS)
-    items = amazon.search_items(
+
+    response = amazon.search_items(
         keywords=keyword,
-        item_count=10,
-        resources=[
-            "ItemInfo.Title",
-            "Offers.Listings.Price",
-            "Images.Primary.Large"
-        ]
+        item_count=10
     )
-    return items.items if items and items.items else []
+
+    if not response or not response.items:
+        return []
+
+    return response.items
+
 
 def main():
     produtos = buscar_produtos()
