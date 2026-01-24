@@ -1,77 +1,51 @@
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import os
-import time
-import hmac
-import hashlib
-import requests
-import json
 
-PARTNER_ID = int(os.getenv("SHOPEE_PARTNER_ID"))
-PARTNER_KEY = os.getenv("SHOPEE_PARTNER_KEY")
-PARTNER_SECRET = os.getenv("SHOPEE_PARTNER_SECRET")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "👋 Envie o produto neste formato:\n\n"
+        "CHAMADA | PRODUTO | PREÇO_ANTIGO | PREÇO_ATUAL | LINK | OBSERVAÇÃO"
+    )
 
-BASE_URL = "https://partner.shopeemobile.com"
-PATH = "/api/v2/product/search_item"
+async def gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    texto = update.message.text
+    partes = texto.split("|")
 
-def generate_signature(path, timestamp):
-    base_string = f"{PARTNER_ID}{path}{timestamp}"
-    return hmac.new(
-        PARTNER_SECRET.encode(),
-        base_string.encode(),
-        hashlib.sha256
-    ).hexdigest()
-
-def shopee_request():
-    timestamp = int(time.time())
-    sign = generate_signature(PATH, timestamp)
-
-    params = {
-        "partner_id": PARTNER_ID,
-        "timestamp": timestamp,
-        "sign": sign,
-        "page_size": 5
-    }
-
-    url = BASE_URL + PATH
-    response = requests.get(url, params=params, timeout=20)
-    return response.json()
-
-def enviar_telegram(texto):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(url, json={
-        "chat_id": CHAT_ID,
-        "text": texto,
-        "parse_mode": "Markdown"
-    })
-
-def main():
-    print("🚀 Bot Shopee API iniciado")
-
-    data = shopee_request()
-    items = data.get("items", [])
-
-    if not items:
-        print("⚠️ Nenhum produto retornado pela API")
+    if len(partes) != 6:
+        await update.message.reply_text(
+            "❌ Formato inválido.\n\n"
+            "Use:\n"
+            "CHAMADA | PRODUTO | PREÇO_ANTIGO | PREÇO_ATUAL | LINK | OBSERVAÇÃO"
+        )
         return
 
-    for item in items:
-        nome = item.get("item_name")
-        preco = item.get("price_info", {}).get("price")
-        link = item.get("item_link")
+    chamada, produto, preco_antigo, preco_atual, link, obs = [p.strip() for p in partes]
 
-        mensagem = f"""
-🔥 *OFERTA SHOPEE*
+    mensagem = f"""
+{chamada}
 
-📦 {nome}
-💰 {preco}
+✅ {produto}
 
-👉 Comprar:
-{link}
+DE ~R$ {preco_antigo}~
+🔥 POR R$ {preco_atual} 🔥
+
+🔗 {link}
+
+_{obs}_
 """
-        enviar_telegram(mensagem)
-        print("✅ Enviado:", nome)
+
+    await update.message.reply_text(mensagem.strip())
+
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, gerar))
+
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
