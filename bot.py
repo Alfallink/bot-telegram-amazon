@@ -1,8 +1,11 @@
+import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
-import os
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+if not TOKEN:
+    raise RuntimeError("TOKEN NÃO ENCONTRADO - verifique o Secret TELEGRAM_BOT_TOKEN")
 
 LINK_AFILIADO = "https://shope.ee/SEU_CODIGO"
 
@@ -22,7 +25,6 @@ async def responder(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 _Aproveite antes que acabe_
 """
-
     await update.message.reply_text(mensagem.strip())
 
 def main():
